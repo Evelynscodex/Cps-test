@@ -65,24 +65,49 @@
     }
 
     #clickArea {
+        position: relative;
+        overflow: hidden;
+
         width: 100%;
         height: 300px;
         border: 2px solid #30363d;
         border-radius: 20px;
         background: #161b22;
+
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
+
         cursor: pointer;
         user-select: none;
         touch-action: manipulation;
-        transition: transform 0.05s, background 0.1s;
+
+        transition:
+            transform 0.05s ease,
+            background 0.12s ease,
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
     }
 
     #clickArea:active {
         transform: scale(0.985);
-        background: #1d242d;
+    }
+
+    /* Subtle blue flash */
+    #clickArea.tap-flash {
+        background: #192332;
+        border-color: #3b82f6;
+        box-shadow: 0 0 22px rgba(59, 130, 246, 0.14);
+    }
+
+    .click-text,
+    .click-hint {
+        position: relative;
+        z-index: 2;
+        transition:
+            opacity 0.18s ease,
+            transform 0.18s ease;
     }
 
     .click-text {
@@ -93,6 +118,48 @@
     .click-hint {
         color: #8b949e;
         margin-top: 10px;
+    }
+
+    /* Instruction disappears after first click */
+    #clickArea.started .click-text,
+    #clickArea.started .click-hint {
+        opacity: 0;
+        transform: translateY(-8px);
+        pointer-events: none;
+    }
+
+    /* Ripple */
+    .ripple {
+        position: absolute;
+        z-index: 1;
+
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+
+        background: rgba(59, 130, 246, 0.18);
+        border: 2px solid rgba(96, 165, 250, 0.42);
+
+        transform: translate(-50%, -50%) scale(0);
+        animation: ripple 0.55s ease-out forwards;
+
+        pointer-events: none;
+    }
+
+    @keyframes ripple {
+        0% {
+            opacity: 0.75;
+            transform: translate(-50%, -50%) scale(0);
+        }
+
+        60% {
+            opacity: 0.28;
+        }
+
+        100% {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(7);
+        }
     }
 
     .buttons {
@@ -111,10 +178,17 @@
         border-radius: 10px;
         font-size: 15px;
         cursor: pointer;
+        transition:
+            background 0.15s ease,
+            transform 0.08s ease;
     }
 
     button:hover {
         background: #21262d;
+    }
+
+    button:active {
+        transform: scale(0.96);
     }
 
     button.active {
@@ -193,12 +267,15 @@
     </div>
 
     <div class="buttons">
-        <button class="duration active" data-time="1">1 Second</button>
-        <button class="duration" data-time="5">5 Seconds</button>
-        <button class="duration" data-time="10">10 Seconds</button>
-        <button class="duration" data-time="15">15 Seconds</button>
-        <button id="reset">Reset</button>
-    </div>
+    <button class="duration active" data-time="1">1 Second</button>
+    <button class="duration" data-time="5">5 Seconds</button>
+    <button class="duration" data-time="10">10 Seconds</button>
+    <button class="duration" data-time="15">15 Seconds</button>
+    <button class="duration" data-time="30">30 Seconds</button>
+    <button class="duration" data-time="50">50 Seconds</button>
+    <button class="duration" data-time="100">100 Seconds</button>
+    <button id="reset">Reset</button>
+</div>
 
     <div class="result" id="result">
         Choose a duration and start clicking!
@@ -223,6 +300,7 @@ let running = false;
 let duration = 1;
 let finished = false;
 
+/* Duration buttons */
 durationButtons.forEach(button => {
     button.addEventListener("click", () => {
         durationButtons.forEach(b => b.classList.remove("active"));
@@ -233,6 +311,7 @@ durationButtons.forEach(button => {
     });
 });
 
+/* Start test */
 function startTest() {
     if (running) return;
 
@@ -240,13 +319,63 @@ function startTest() {
     finished = false;
     startTime = performance.now();
 
+    /* Hide starting instructions */
+    clickArea.classList.add("started");
+
     timer = setInterval(updateTest, 20);
 }
 
+/* Create blue ripple at exact click/tap position */
+function createRipple(event) {
+    const rect = clickArea.getBoundingClientRect();
+
+    let x;
+    let y;
+
+    if (event.clientX !== undefined && event.clientY !== undefined) {
+        x = event.clientX - rect.left;
+        y = event.clientY - rect.top;
+    } else {
+        x = rect.width / 2;
+        y = rect.height / 2;
+    }
+
+    const ripple = document.createElement("span");
+    ripple.className = "ripple";
+
+    ripple.style.left = `${x}px`;
+    ripple.style.top = `${y}px`;
+
+    clickArea.appendChild(ripple);
+
+    ripple.addEventListener("animationend", () => {
+        ripple.remove();
+    });
+}
+
+/* Small blue flash */
+function flashClickArea() {
+    clickArea.classList.remove("tap-flash");
+
+    /* Force browser to restart transition */
+    void clickArea.offsetWidth;
+
+    clickArea.classList.add("tap-flash");
+
+    setTimeout(() => {
+        clickArea.classList.remove("tap-flash");
+    }, 110);
+}
+
+/* Register click */
 function registerClick(event) {
     event.preventDefault();
 
     if (finished) return;
+
+    /* Every click/tap gets visual feedback */
+    createRipple(event);
+    flashClickArea();
 
     if (!running) {
         startTest();
@@ -258,6 +387,7 @@ function registerClick(event) {
     updateTest();
 }
 
+/* Update timer + CPS */
 function updateTest() {
     if (!startTime) return;
 
@@ -266,8 +396,6 @@ function updateTest() {
 
     timeDisplay.textContent = displayTime.toFixed(1);
 
-    // During the test, CPS is based on elapsed time.
-    // At the end, it is based on the complete test duration.
     const divisor = Math.max(displayTime, 0.001);
     const cps = clicks / divisor;
 
@@ -278,6 +406,7 @@ function updateTest() {
     }
 }
 
+/* Finish test */
 function finishTest() {
     if (!running) return;
 
@@ -295,11 +424,14 @@ function finishTest() {
     result.textContent =
         `Test complete! You got ${finalCPS.toFixed(2)} CPS with ${clicks} clicks.`;
 
+    clickArea.classList.remove("started");
+
     clickArea.querySelector(".click-text").textContent = "TEST COMPLETE";
     clickArea.querySelector(".click-hint").textContent =
         "Press Reset to try again";
 }
 
+/* Reset test */
 function resetTest() {
     clearInterval(timer);
 
@@ -315,23 +447,35 @@ function resetTest() {
 
     result.textContent = "Choose a duration and start clicking!";
 
-    clickArea.querySelector(".click-text").textContent = "CLICK / TAP HERE";
+    clickArea.classList.remove("started");
+    clickArea.classList.remove("tap-flash");
+
+    clickArea.querySelector(".click-text").textContent =
+        "CLICK / TAP HERE";
+
     clickArea.querySelector(".click-hint").textContent =
         "Your test starts with your first click";
+
+    /* Remove any leftover ripples */
+    clickArea.querySelectorAll(".ripple").forEach(ripple => {
+        ripple.remove();
+    });
 }
 
 function resetAll() {
     resetTest();
 }
 
+/* Pointer events = mouse + touch */
 clickArea.addEventListener("pointerdown", registerClick);
+
 resetButton.addEventListener("click", resetAll);
 
-// Prevent accidental scrolling/zooming while testing.
+/* Prevent accidental scrolling while testing */
 clickArea.addEventListener("touchstart", e => {
     e.preventDefault();
 }, { passive: false });
 </script>
 
 </body>
-  </html>
+</html>
