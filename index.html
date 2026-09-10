@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPS Tester</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Arial, sans-serif;
+        background: #0d1117;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .container {
+        width: 100%;
+        max-width: 650px;
+        text-align: center;
+    }
+
+    h1 {
+        font-size: 42px;
+        margin: 0 0 8px;
+    }
+
+    .subtitle {
+        color: #8b949e;
+        margin-bottom: 25px;
+    }
+
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .stat {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 14px;
+        padding: 16px 8px;
+    }
+
+    .stat-value {
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .stat-label {
+        color: #8b949e;
+        font-size: 13px;
+        margin-top: 5px;
+    }
+
+    #clickArea {
+        width: 100%;
+        height: 300px;
+        border: 2px solid #30363d;
+        border-radius: 20px;
+        background: #161b22;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        touch-action: manipulation;
+        transition: transform 0.05s, background 0.1s;
+    }
+
+    #clickArea:active {
+        transform: scale(0.985);
+        background: #1d242d;
+    }
+
+    .click-text {
+        font-size: 34px;
+        font-weight: bold;
+    }
+
+    .click-hint {
+        color: #8b949e;
+        margin-top: 10px;
+    }
+
+    .buttons {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    button {
+        border: 1px solid #30363d;
+        background: #161b22;
+        color: white;
+        padding: 11px 18px;
+        border-radius: 10px;
+        font-size: 15px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #21262d;
+    }
+
+    button.active {
+        background: #238636;
+        border-color: #238636;
+    }
+
+    #reset {
+        background: #da3633;
+        border-color: #da3633;
+    }
+
+    .result {
+        margin-top: 20px;
+        min-height: 30px;
+        color: #8b949e;
+    }
+
+    @media (max-width: 500px) {
+        h1 {
+            font-size: 34px;
+        }
+
+        #clickArea {
+            height: 260px;
+        }
+
+        .click-text {
+            font-size: 28px;
+        }
+
+        .stats {
+            gap: 7px;
+        }
+
+        .stat {
+            padding: 12px 5px;
+        }
+
+        .stat-value {
+            font-size: 23px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>⚡ CPS Tester</h1>
+    <div class="subtitle">Test your clicks per second</div>
+
+    <div class="stats">
+
+        <div class="stat">
+            <div class="stat-value" id="cps">0.00</div>
+            <div class="stat-label">CPS</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-value" id="clicks">0</div>
+            <div class="stat-label">Clicks</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-value" id="time">0.0</div>
+            <div class="stat-label">Seconds</div>
+        </div>
+
+    </div>
+
+    <div id="clickArea">
+        <div class="click-text">CLICK / TAP HERE</div>
+        <div class="click-hint">Your test starts with your first click</div>
+    </div>
+
+    <div class="buttons">
+        <button class="duration active" data-time="1">1 Second</button>
+        <button class="duration" data-time="5">5 Seconds</button>
+        <button class="duration" data-time="10">10 Seconds</button>
+        <button class="duration" data-time="15">15 Seconds</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <div class="result" id="result">
+        Choose a duration and start clicking!
+    </div>
+
+</div>
+
+<script>
+const clickArea = document.getElementById("clickArea");
+const cpsDisplay = document.getElementById("cps");
+const clicksDisplay = document.getElementById("clicks");
+const timeDisplay = document.getElementById("time");
+const result = document.getElementById("result");
+
+const durationButtons = document.querySelectorAll(".duration");
+const resetButton = document.getElementById("reset");
+
+let clicks = 0;
+let startTime = null;
+let timer = null;
+let running = false;
+let duration = 1;
+let finished = false;
+
+durationButtons.forEach(button => {
+    button.addEventListener("click", () => {
+        durationButtons.forEach(b => b.classList.remove("active"));
+        button.classList.add("active");
+
+        duration = Number(button.dataset.time);
+        resetTest();
+    });
+});
+
+function startTest() {
+    if (running) return;
+
+    running = true;
+    finished = false;
+    startTime = performance.now();
+
+    timer = setInterval(updateTest, 20);
+}
+
+function registerClick(event) {
+    event.preventDefault();
+
+    if (finished) return;
+
+    if (!running) {
+        startTest();
+    }
+
+    clicks++;
+    clicksDisplay.textContent = clicks;
+
+    updateTest();
+}
+
+function updateTest() {
+    if (!startTime) return;
+
+    const elapsed = (performance.now() - startTime) / 1000;
+    const displayTime = Math.min(elapsed, duration);
+
+    timeDisplay.textContent = displayTime.toFixed(1);
+
+    // During the test, CPS is based on elapsed time.
+    // At the end, it is based on the complete test duration.
+    const divisor = Math.max(displayTime, 0.001);
+    const cps = clicks / divisor;
+
+    cpsDisplay.textContent = cps.toFixed(2);
+
+    if (elapsed >= duration) {
+        finishTest();
+    }
+}
+
+function finishTest() {
+    if (!running) return;
+
+    running = false;
+    finished = true;
+
+    clearInterval(timer);
+    timer = null;
+
+    const finalCPS = clicks / duration;
+
+    cpsDisplay.textContent = finalCPS.toFixed(2);
+    timeDisplay.textContent = duration.toFixed(1);
+
+    result.textContent =
+        `Test complete! You got ${finalCPS.toFixed(2)} CPS with ${clicks} clicks.`;
+
+    clickArea.querySelector(".click-text").textContent = "TEST COMPLETE";
+    clickArea.querySelector(".click-hint").textContent =
+        "Press Reset to try again";
+}
+
+function resetTest() {
+    clearInterval(timer);
+
+    clicks = 0;
+    startTime = null;
+    running = false;
+    finished = false;
+    timer = null;
+
+    cpsDisplay.textContent = "0.00";
+    clicksDisplay.textContent = "0";
+    timeDisplay.textContent = "0.0";
+
+    result.textContent = "Choose a duration and start clicking!";
+
+    clickArea.querySelector(".click-text").textContent = "CLICK / TAP HERE";
+    clickArea.querySelector(".click-hint").textContent =
+        "Your test starts with your first click";
+}
+
+function resetAll() {
+    resetTest();
+}
+
+clickArea.addEventListener("pointerdown", registerClick);
+resetButton.addEventListener("click", resetAll);
+
+// Prevent accidental scrolling/zooming while testing.
+clickArea.addEventListener("touchstart", e => {
+    e.preventDefault();
+}, { passive: false });
+</script>
+
+</body>
+  </html>
