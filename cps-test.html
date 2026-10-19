@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CPS Tester Pro</title>
+<style>
+:root{--bg:#0b0e14;--card:#141923;--line:#262d3b;--text:#f3f5f9;--mute:#8a94a7;--or:#ff7a1a;--or2:#ffb066;--ok:#2ea043;--bad:#e5484d;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#f4f5f8;--card:#fff;--line:#dde1e9;--text:#161a22;--mute:#667085}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;display:flex;justify-content:center;padding:20px 14px}
+.wrap{width:100%;max-width:680px}
+header{text-align:center;margin-bottom:18px}
+h1{margin:0;font-size:clamp(28px,6vw,40px);letter-spacing:-.5px}
+h1 span{color:var(--or)}
+.sub{color:var(--mute);margin-top:6px;font-size:14px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 6px;text-align:center}
+.stat b{display:block;font-size:clamp(20px,5vw,28px);font-variant-numeric:tabular-nums}
+.stat small{color:var(--mute);font-size:12px}
+.stat.main b{color:var(--or)}
+.bar{height:6px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--or),var(--or2));border-radius:6px}
+#pad{position:relative;overflow:hidden;width:100%;height:clamp(240px,42vh,340px);border:2px solid var(--line);border-radius:22px;background:var(--card);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:none;outline:none;transition:transform .06s ease,border-color .15s,box-shadow .15s}
+#pad:focus-visible{border-color:var(--or2)}
+#pad.hit{border-color:var(--or);box-shadow:0 0 28px rgba(255,122,26,.28),inset 0 0 40px rgba(255,122,26,.12);transform:scale(.99)}
+#pad.done{cursor:default}
+.t1{font-size:clamp(24px,6vw,34px);font-weight:800;position:relative;z-index:2;transition:opacity .2s,transform .2s;text-align:center;padding:0 10px}
+.t2{color:var(--mute);margin-top:8px;font-size:14px;position:relative;z-index:2;transition:opacity .2s}
+#pad.live .t1,#pad.live .t2{opacity:0;transform:translateY(-8px)}
+.ripple{position:absolute;z-index:1;width:36px;height:36px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(255,140,40,.95) 0%,rgba(255,122,26,.7) 55%,rgba(255,122,26,.35) 100%);transform:translate(-50%,-50%) scale(0);animation:rp .6s cubic-bezier(.2,.7,.3,1) forwards;will-change:transform,opacity}
+@keyframes rp{0%{opacity:.95;transform:translate(-50%,-50%) scale(0)}100%{opacity:0;transform:translate(-50%,-50%) scale(6.5)}}
+.row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:14px}
+button{font:inherit;font-size:14px;color:var(--text);background:var(--card);border:1px solid var(--line);padding:9px 14px;border-radius:10px;cursor:pointer;transition:background .15s,transform .08s,border-color .15s}
+button:hover{border-color:var(--or)}
+button:active{transform:scale(.95)}
+button.on{background:var(--or);border-color:var(--or);color:#fff}
+button.rst{background:var(--bad);border-color:var(--bad);color:#fff}
+.custom{display:flex;gap:6px;align-items:center}
+input[type=number]{width:70px;font:inherit;font-size:14px;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-top:16px}
+.panel h2{margin:0 0 10px;font-size:15px;color:var(--mute);font-weight:600}
+#res{display:none;text-align:center}
+#res.show{display:block}
+#res .big{font-size:44px;font-weight:800;color:var(--or)}
+#res .rank{font-size:18px;font-weight:700;margin:2px 0 4px}
+#res .nb{color:var(--ok);font-weight:700;min-height:20px}
+.chart{display:flex;align-items:flex-end;gap:2px;height:70px;margin-top:12px;overflow-x:auto}
+.chart i{flex:1 0 4px;min-width:4px;background:linear-gradient(var(--or2),var(--or));border-radius:3px 3px 0 0}
+.cl{color:var(--mute);font-size:12px;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+td,th{padding:7px 4px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:600;font-size:12px}
+.tw{overflow-x:auto}
+.empty{color:var(--mute);font-size:14px}
+.opts{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-top:14px;font-size:14px;color:var(--mute)}
+.opts label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.hint{text-align:center;color:var(--mute);font-size:12px;margin-top:14px}
+@media(max-width:480px){.stats{gap:6px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>⚡ CPS <span>Tester</span> Pro</h1>
+<div class="sub">Click as fast as you can. Timer starts on your first click.</div>
+</header>
+
+<div class="stats">
+<div class="stat main"><b id="cps">0.00</b><small>CPS</small></div>
+<div class="stat"><b id="clicks">0</b><small>Clicks</small></div>
+<div class="stat"><b id="time">0.0</b><small>Seconds</small></div>
+<div class="stat"><b id="peak">0.0</b><small>Peak CPS</small></div>
+</div>
+<div class="bar"><i id="prog"></i></div>
+
+<div id="pad" tabindex="0" role="button" aria-label="Click area">
+<div class="t1" id="t1">CLICK / TAP HERE</div>
+<div class="t2" id="t2">Mouse, touch or Space / Enter</div>
+</div>
+
+<div class="row" id="durs"></div>
+<div class="row">
+<div class="custom"><input type="number" id="cust" min="1" max="600" placeholder="sec"><button id="setc">Set</button></div>
+<button class="rst" id="reset">Reset (R)</button>
+</div>
+
+<div class="opts">
+<label><input type="checkbox" id="snd"> Click sound</label>
+<label><input type="checkbox" id="mb"> Count right-click too</label>
+</div>
+
+<div class="panel" id="res">
+<div class="big" id="rcps">0.00</div>
+<div class="rank" id="rrank"></div>
+<div class="nb" id="rnb"></div>
+<div class="cl" id="rinfo"></div>
+<div class="chart" id="chart"></div>
+<div class="cl">Clicks per second, over time</div>
+</div>
+
+<div class="panel">
+<h2>🏆 Personal bests</h2>
+<div class="tw"><table><thead><tr><th>Duration</th><th>Best CPS</th><th>Clicks</th></tr></thead><tbody id="bests"></tbody></table></div>
+</div>
+
+<div class="panel">
+<h2>🕒 Recent tests</h2>
+<div class="tw"><table><thead><tr><th>Time</th><th>Duration</th><th>CPS</th><th>Clicks</th></tr></thead><tbody id="hist"></tbody></table></div>
+<div class="row"><button id="clr">Clear data</button></div>
+</div>
+
+<div class="hint">Shortcuts: Space/Enter = click · R = reset · 1–7 = quick duration</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const pad=$("pad"),DURS=[1,5,10,15,30,60,100];
+let dur=1,clicks=0,t0=0,running=false,done=false,raf=0,stamps=[],peak=0;
+let store={best:{},hist:[]};
+try{const s=JSON.parse(localStorage.getItem("cpspro")||"null");if(s&&s.best&&s.hist)store=s}catch(e){}
+function save(){try{localStorage.setItem("cpspro",JSON.stringify(store))}catch(e){}}
+
+/* sound */
+let actx=null;
+function tick(){
+ if(!$("snd").checked)return;
+ try{
+  actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type="triangle";o.frequency.value=520+Math.random()*60;
+  g.gain.setValueAtTime(.08,actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+.06);
+  o.connect(g);g.connect(actx.destination);o.start();o.stop(actx.currentTime+.06);
+ }catch(e){}
+}
+
+/* duration buttons */
+function buildDurs(){
+ const box=$("durs");box.innerHTML="";
+ const list=DURS.includes(dur)?DURS:[...DURS,dur].sort((a,b)=>a-b);
+ list.forEach(d=>{
+  const b=document.createElement("button");
+  b.textContent=d+(d===1?" Second":" Seconds");
+  if(d===dur)b.className="on";
+  b.onclick=()=>{dur=d;buildDurs();reset()};
+  box.appendChild(b);
+ });
+}
+$("setc").onclick=()=>{
+ const v=Math.round(Number($("cust").value));
+ if(v>=1&&v<=600){dur=v;buildDurs();reset();$("cust").value=""}
+};
+
+/* feedback */
+function ripple(e){
+ const r=pad.getBoundingClientRect();
+ let x=r.width/2,y=r.height/2;
+ if(e&&e.clientX!==undefined&&(e.clientX||e.clientY)){x=e.clientX-r.left;y=e.clientY-r.top}
+ const s=document.createElement("span");
+ s.className="ripple";s.style.left=x+"px";s.style.top=y+"px";
+ pad.appendChild(s);
+ s.addEventListener("animationend",()=>s.remove());
+ setTimeout(()=>s.remove(),900);
+}
+let ft=0;
+function flash(){
+ pad.classList.add("hit");
+ clearTimeout(ft);ft=setTimeout(()=>pad.classList.remove("hit"),90);
+}
+
+/* core */
+function click(e){
+ if(done)return;
+ const now=performance.now();
+ if(!running){
+  running=true;t0=now;stamps=[];peak=0;
+  pad.classList.add("live");
+  raf=requestAnimationFrame(loop);
+ }
+ if(now-t0>dur*1000)return;
+ clicks++;stamps.push(now-t0);
+ $("clicks").textContent=clicks;
+ ripple(e);flash();tick();
+ update(now);
+}
+function update(now){
+ const el=Math.min((now-t0)/1000,dur);
+ $("time").textContent=el.toFixed(1);
+ $("cps").textContent=(clicks/Math.max(el,.05)).toFixed(2);
+ $("prog").style.width=(el/dur*100)+"%";
+ const w=(now-t0)-1000;let c=0;
+ for(let i=stamps.length-1;i>=0&&stamps[i]>=w;i--)c++;
+ if((now-t0)>=1000||dur===1)peak=Math.max(peak,c);
+ $("peak").textContent=peak.toFixed(1);
+}
+function loop(){
+ if(!running)return;
+ const now=performance.now();
+ if(now-t0>=dur*1000){finish();return}
+ update(now);
+ raf=requestAnimationFrame(loop);
+}
+function rank(c){
+ if(c<3)return"🐌 Snail";if(c<5)return"🙂 Casual";if(c<7)return"🔥 Quick";
+ if(c<9)return"⚡ Fast";if(c<11)return"🚀 Pro";if(c<14)return"👑 Elite";return"🌟 Legend";
+}
+function finish(){
+ running=false;done=true;cancelAnimationFrame(raf);
+ pad.classList.remove("live");pad.classList.add("done");
+ const f=clicks/dur;
+ $("cps").textContent=f.toFixed(2);$("time").textContent=dur.toFixed(1);$("prog").style.width="100%";
+ if(dur===1)peak=Math.max(peak,clicks);
+ $("peak").textContent=peak.toFixed(1);
+ $("t1").textContent="TEST COMPLETE";$("t2").textContent="Press R or Reset to try again";
+ pad.classList.remove("live");
+ /* records */
+ const prev=store.best[dur];
+ const isNew=!prev||f>prev.cps;
+ if(isNew)store.best[dur]={cps:f,clicks};
+ store.hist.unshift({d:Date.now(),dur,cps:f,clicks});
+ store.hist=store.hist.slice(0,10);save();
+ /* result */
+ $("res").classList.add("show");
+ $("rcps").textContent=f.toFixed(2)+" CPS";
+ $("rrank").textContent=rank(f);
+ $("rnb").textContent=isNew?"🎉 New personal best!":"Best for "+dur+"s: "+prev.cps.toFixed(2)+" CPS";
+ $("rinfo").textContent=clicks+" clicks in "+dur+"s · peak "+peak.toFixed(1)+" CPS";
+ const n=Math.min(dur,60),size=dur/n,b=new Array(n).fill(0);
+ stamps.forEach(s=>{b[Math.min(n-1,Math.floor(s/1000/size))]++});
+ const mx=Math.max(1,...b);
+ $("chart").innerHTML=b.map(v=>`<i style="height:${Math.max(4,v/mx*100)}%" title="${(v/size).toFixed(1)} CPS"></i>`).join("");
+ render();
+}
+function reset(){
+ cancelAnimationFrame(raf);
+ running=false;done=false;clicks=0;stamps=[];peak=0;t0=0;
+ $("cps").textContent="0.00";$("clicks").textContent="0";$("time").textContent="0.0";$("peak").textContent="0.0";
+ $("prog").style.width="0";
+ $("t1").textContent="CLICK / TAP HERE";$("t2").textContent="Mouse, touch or Space / Enter";
+ pad.classList.remove("live","done","hit");
+ pad.querySelectorAll(".ripple").forEach(r=>r.remove());
+ $("res").classList.remove("show");
+}
+function render(){
+ const keys=Object.keys(store.best).map(Number).sort((a,b)=>a-b);
+ $("bests").innerHTML=keys.length?keys.map(k=>`<tr><td>${k}s</td><td>${store.best[k].cps.toFixed(2)}</td><td>${store.best[k].clicks}</td></tr>`).join(""):`<tr><td colspan="3" class="empty">No records yet</td></tr>`;
+ $("hist").innerHTML=store.hist.length?store.hist.map(h=>`<tr><td>${new Date(h.d).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</td><td>${h.dur}s</td><td>${h.cps.toFixed(2)}</td><td>${h.clicks}</td></tr>`).join(""):`<tr><td colspan="4" class="empty">No tests yet</td></tr>`;
+}
+
+/* input */
+pad.addEventListener("pointerdown",e=>{
+ if(e.button===2&&!$("mb").checked)return;
+ if(e.button===1)return;
+ e.preventDefault();click(e);
+});
+pad.addEventListener("contextmenu",e=>e.preventDefault());
+pad.addEventListener("dragstart",e=>e.preventDefault());
+document.addEventListener("keydown",e=>{
+ if(e.target.tagName==="INPUT")return;
+ if(e.repeat)return;
+ if(e.key===" "||e.key==="Enter"){
+  if(document.activeElement&&document.activeElement.tagName==="BUTTON")return;
+  e.preventDefault();click(null);
+ }else if(e.key==="r"||e.key==="R"){reset()}
+ else if(e.key>="1"&&e.key<="7"){dur=DURS[Number(e.key)-1];buildDurs();reset()}
+});
+$("reset").onclick=reset;
+$("clr").onclick=()=>{store={best:{},hist:[]};save();render()};
+
+buildDurs();render();
+</script>
+</body>
+</html>
